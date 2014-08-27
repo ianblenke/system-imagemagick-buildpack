@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+set -ex
+
+BUILD_DIR=$1 # The app directory, usually /app. This will have the app source initially. Whatever is left here will be persisted.
+CACHE_DIR=$2 # The contents of CACHE_DIR will be persisted between builds so we can use it to speed the builds up
+ENV_DIR=$3     # An envdir directory of the app's environment variables
+
+CACHED_IMAGEMAGICK_ROOT=${CACHED_IMAGEMAGICK_ROOT:-$CACHE_DIR/imagemagick}
+APT_CACHE_PATH=${APT_CACHE_PATH:-CACHE_DIR/apt}
+
+# If REMOVE_IMAGEMAGICK_CACHE is set, clean up the cache
+[ -n "$REMOVE_IMAGEMAGICK_CACHE" ] && (
+  echo "Removing ImageMagick cached assets"
+  [ -d $CACHED_IMAGEMAGICK_ROOT ] && rm -fr $CACHED_IMAGEMAGICK_ROOT
+  [ -d $APT_CACHE_PATH ] && rm -fr $APT_CACHE_PATH
+)
+
+# Grab the source for Imagemagick if it does not yet exist
+[ -d $CACHED_IMAGEMAGICK_ROOT ] || (
+  mkdir $CACHED_IMAGEMAGICK_ROOT
+
+  # Prepare the build environment by updating ubuntu first. Use caching between builds to improve the speed.
+  grep old-releases /etc/apt/sources.list >/dev/null 2>&1 || (
+    if ! grep -qe 'utopic\|trusty\|saucy\|precise\|lucid' /etc/apt/sources.list ; then
+      perl -pi -e "s%archive.ubuntu.com/ubuntu%old-releases.ubuntu.com/ubuntu%g" /etc/apt/sources.list
+    fi
+    mkdir -p $APT_CACHE_PATH
+    apt-get -o dir::cache::archives=$APT_CACHE_PATH update
+    LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -o dir::cache::archives=$APT_CACHE_PATH build-dep imagemagick -f -y
+    LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -o dir::cache::archives=$APT_CACHE_PATH install imagemagick -f -y
+  )
+
+  # I really should be ashamed of this.
+  dpkg --listfiles imagemagick | grep /usr/bin/ | xargs ldd | grep -v : | awk '{print $1}' | sort | uniq | xargs dpkg --search | cut -d: -f1 | sort | uniq | xargs dpkg --listfiles | sort | uniq | while read file ; do if [ -f $file ] ; then echo $file ; fi ; done > $CACHED_IMAGEMAGICK_ROOT/imagemagick.files
+
+  tar -czf $CACHED_IMAGEMAGICK_ROOT/imagemagick.tar.gz -C / -T $CACHED_IMAGEMAGICK_ROOT/imagemagick.files
+)
+
+IMAGEMAGICK_ROOT=$BUILD_DIR/imagemagick
+
+mkdir -p $IMAGEMAGICK_ROOT
+
+tar -xzf $CACHED_IMAGEMAGICK_ROOT/imagemagick.tar.gz -C $IMAGEMAGICK_ROOT
+
+BUILD_PROFILE_ROOT=$BUILD_DIR/.profile.d
+mkdir -p $BUILD_PROFILE_ROOT
+IMAGEMAGICK_PROFILE=$BUILD_PROFILE_ROOT/imagemagick
+
+(
+  echo 'cat <<EOF >/etc/ld.so.conf.d/imagemagick-buildpack.conf'
+  grep -e '.so$' $CACHED_IMAGEMAGICK_ROOT/imagemagick.files | xargs dirname | uniq | awk "{print '$IMAGEMAGICK_ROOT' \$0}"
+  echo 'EOF'
+  echo '/sbin/ldconfig'
+  echo "export PATH=\$PATH:/app/imagemagick/usr/bin"
+  echo "hash -r"
+) > $IMAGEMAGICK_PROFILE
+
+source $IMAGEMAGICK_PROFILE
+
+export LD_LIBARARY_PATH=/app/imagemagick/usr/lib:$LD_LIBRARY_PATH
+export PATH
+
