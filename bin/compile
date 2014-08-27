@@ -54,7 +54,7 @@ IMAGEMAGICK_PROFILE=$BUILD_PROFILE_ROOT/imagemagick
 
 (
   echo 'cat <<EOF >/etc/ld.so.conf.d/imagemagick-buildpack.conf'
-  grep -e '.so$' $CACHED_IMAGEMAGICK_ROOT/imagemagick.files | xargs dirname | uniq | awk "{print '$IMAGEMAGICK_ROOT' \$0}"
+  grep -e '.so$' $CACHED_IMAGEMAGICK_ROOT/imagemagick.files | xargs dirname | uniq | awk "{print \"$IMAGEMAGICK_ROOT\" \$0}"
   echo 'EOF'
   echo '/sbin/ldconfig'
   echo "export PATH=\$PATH:/app/imagemagick/usr/bin"
