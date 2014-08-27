@@ -15,8 +15,8 @@ REMOVE_IMAGEMAGICK_CACHE=always
 # If REMOVE_IMAGEMAGICK_CACHE is set, clean up the cache
 [ -n "$REMOVE_IMAGEMAGICK_CACHE" ] && (
   echo "Removing ImageMagick cached assets"
-  [ -d $CACHED_IMAGEMAGICK_ROOT ] && rm -fr $CACHED_IMAGEMAGICK_ROOT
-  [ -d $APT_CACHE_PATH ] && rm -fr $APT_CACHE_PATH
+  [ -d $CACHED_IMAGEMAGICK_ROOT ] && rm -fr $CACHED_IMAGEMAGICK_ROOT || true
+  [ -d $APT_CACHE_PATH ] && rm -fr $APT_CACHE_PATH || true
 )
 
 # Grab the source for Imagemagick if it does not yet exist
