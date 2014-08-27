@@ -9,8 +9,8 @@ ENV_DIR=$3     # An envdir directory of the app's environment variables
 CACHED_IMAGEMAGICK_ROOT=${CACHED_IMAGEMAGICK_ROOT:-$CACHE_DIR/imagemagick}
 APT_CACHE_PATH=${APT_CACHE_PATH:-$CACHE_DIR/apt}
 
-# For the moment, let's always remove the cache
-REMOVE_IMAGEMAGICK_CACHE=always
+# This would force caching to be disabled
+#REMOVE_IMAGEMAGICK_CACHE=always
 
 # If REMOVE_IMAGEMAGICK_CACHE is set, clean up the cache
 [ -n "$REMOVE_IMAGEMAGICK_CACHE" ] && (
@@ -37,7 +37,9 @@ REMOVE_IMAGEMAGICK_CACHE=always
   )
 
   # I really should be ashamed of this.
+  set +x
   dpkg --listfiles imagemagick | grep /usr/bin/ | xargs ldd | grep -v : | awk '{print $1}' | sort | uniq | xargs dpkg --search | cut -d: -f1 | sort | uniq | xargs dpkg --listfiles | sort | uniq | while read file ; do if [ -f $file ] ; then echo $file ; fi ; done > $CACHED_IMAGEMAGICK_ROOT/imagemagick.files
+  set -x
 
   tar -czf $CACHED_IMAGEMAGICK_ROOT/imagemagick.tar.gz -C / -T $CACHED_IMAGEMAGICK_ROOT/imagemagick.files
 )
@@ -46,7 +48,7 @@ IMAGEMAGICK_ROOT=$BUILD_DIR/imagemagick
 
 mkdir -p $IMAGEMAGICK_ROOT
 
-tar -xzf $CACHED_IMAGEMAGICK_ROOT/imagemagick.tar.gz -C $IMAGEMAGICK_ROOT
+tar -xvzf $CACHED_IMAGEMAGICK_ROOT/imagemagick.tar.gz -C $IMAGEMAGICK_ROOT
 
 BUILD_PROFILE_ROOT=$BUILD_DIR/.profile.d
 mkdir -p $BUILD_PROFILE_ROOT
@@ -63,6 +65,5 @@ IMAGEMAGICK_PROFILE=$BUILD_PROFILE_ROOT/imagemagick
 
 source $IMAGEMAGICK_PROFILE
 
-export LD_LIBARARY_PATH=/app/imagemagick/usr/lib:$LD_LIBRARY_PATH
 export PATH
 
