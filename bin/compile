@@ -25,6 +25,8 @@ APT_CACHE_PATH=${APT_CACHE_PATH:-CACHE_DIR/apt}
     if ! grep -qe 'utopic\|trusty\|saucy\|precise\|lucid' /etc/apt/sources.list ; then
       perl -pi -e "s%archive.ubuntu.com/ubuntu%old-releases.ubuntu.com/ubuntu%g" /etc/apt/sources.list
     fi
+    grep -qe '^deb-src' ||
+      cat /etc/apt/sources.list | sed -e 's/^deb/deb-src/' >> /etc/apt/sources.list
     mkdir -p $APT_CACHE_PATH
     apt-get -o dir::cache::archives=$APT_CACHE_PATH update
     LC_ALL=C DEBIAN_FRONTEND=noninteractive apt-get -o dir::cache::archives=$APT_CACHE_PATH build-dep imagemagick -f -y
