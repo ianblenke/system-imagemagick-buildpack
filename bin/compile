@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -ex
-
 BUILD_DIR=$1 # The app directory, usually /app. This will have the app source initially. Whatever is left here will be persisted.
 CACHE_DIR=$2 # The contents of CACHE_DIR will be persisted between builds so we can use it to speed the builds up
 ENV_DIR=$3     # An envdir directory of the app's environment variables
@@ -37,9 +35,7 @@ APT_CACHE_PATH=${APT_CACHE_PATH:-$CACHE_DIR/apt}
   )
 
   # I really should be ashamed of this.
-  set +x
-  dpkg --listfiles imagemagick | grep /usr/bin/ | xargs ldd | grep -v : | awk '{print $1}' | sort | uniq | xargs dpkg --search | cut -d: -f1 | sort | uniq | xargs dpkg --listfiles | sort | uniq | while read file ; do if [ -f $file ] ; then echo $file ; fi ; done > $CACHED_IMAGEMAGICK_ROOT/imagemagick.files
-  set -x
+  ( dpkg --listfiles imagemagick ; dpkg --listfiles imagemagick | grep /usr/bin/ | xargs ldd | grep -v : | awk '{print $1}' | sort | uniq | xargs dpkg --search | cut -d: -f1 | sort | uniq | xargs dpkg --listfiles ) | sort | uniq | while read file ; do if [ -f $file ] ; then echo $file ; fi ; done > $CACHED_IMAGEMAGICK_ROOT/imagemagick.files
 
   tar -czf $CACHED_IMAGEMAGICK_ROOT/imagemagick.tar.gz -C / -T $CACHED_IMAGEMAGICK_ROOT/imagemagick.files
 )
@@ -48,7 +44,7 @@ IMAGEMAGICK_ROOT=$BUILD_DIR/imagemagick
 
 mkdir -p $IMAGEMAGICK_ROOT
 
-tar -xvzf $CACHED_IMAGEMAGICK_ROOT/imagemagick.tar.gz -C $IMAGEMAGICK_ROOT
+tar -xzf $CACHED_IMAGEMAGICK_ROOT/imagemagick.tar.gz -C $IMAGEMAGICK_ROOT
 
 BUILD_PROFILE_ROOT=$BUILD_DIR/.profile.d
 mkdir -p $BUILD_PROFILE_ROOT
