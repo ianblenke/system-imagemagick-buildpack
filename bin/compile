@@ -9,6 +9,9 @@ ENV_DIR=$3     # An envdir directory of the app's environment variables
 CACHED_IMAGEMAGICK_ROOT=${CACHED_IMAGEMAGICK_ROOT:-$CACHE_DIR/imagemagick}
 APT_CACHE_PATH=${APT_CACHE_PATH:-CACHE_DIR/apt}
 
+# For the moment, let's always remove the cache
+REMOTE_IMAGEMAGICK_CACHE=always
+
 # If REMOVE_IMAGEMAGICK_CACHE is set, clean up the cache
 [ -n "$REMOVE_IMAGEMAGICK_CACHE" ] && (
   echo "Removing ImageMagick cached assets"
